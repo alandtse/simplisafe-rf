@@ -50,13 +50,15 @@ def _recv_cbf(gpio, level, tick):
             #print("Start sequence detected")
         else:
             start_flag0 = False
-        return
-    if dt > 1.1:
+        return 
+    if dt > 1.1: 
         encoded += 'X' # Invalid duration
+        #encoded += '1' # Assume long pulses are 1 
     elif dt >= 0.9:
         encoded += '1'
     elif dt > 0.6:
-        encoded += 'X' # Invalid duration
+        encoded += 'x' # Invalid duration
+        #encoded += '0' # Assume short pulses are 0
     else:
         encoded += '0'
     sync_buffer += encoded
@@ -90,8 +92,8 @@ def recv(gpio: int):
         if len(encoded) <= 4:
             print('Message ignored (not enough bytes)')
             continue
-        if encoded.find('X') != -1:
-            print('Message ignored (bad pulse width)')
+        if (encoded.find('X') != -1) or (encoded.find('x') != -1):
+            print('Message ignored (bad pulse width):'+ encoded)
             continue
 
         decoded = ''

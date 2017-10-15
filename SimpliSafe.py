@@ -1747,8 +1747,7 @@ class SensorMessage(ComponentMessage):
                     return c.factory(msg)
                 except ValueError:
                     pass
-            raise NotImplementedError("Unimplemented SensorMessage, Event: 0x{:02X}".format(event_type))
-
+            raise NotImplementedError("Unimplemented SensorMessage, Serial Number: " + msg.sn + ", Origin_Type: " + origin_type.__class__.key(origin_type) + ", Origin: 0x{:X}, Seq: 0x{:X}, Event: 0x{:02X}".format(origin_type, sequence, event_type))
     @property
     def payload(self):
         stuffed_byte = (self.sequence << 4) + self.origin_type
