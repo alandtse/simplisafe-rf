@@ -1,6 +1,10 @@
 import pigpio
 import SimpliSafe
 from time import sleep
+import threading
+
+e = threading.Event()
+threads = []
 
 done = False
 skip = False
@@ -31,6 +35,7 @@ def _recv_cbf(gpio, level, tick):
         if start_flag1:
             pi.set_glitch_filter(gpio, 0)
             pi.stop()
+            e.set()
             done = True # End of transmission
             #print("End of transmission")
         else:
@@ -82,9 +87,11 @@ def recv(gpio: int):
         pi.set_glitch_filter(gpio, 50)
         #pi.set_noise_filter(gpio, 400, 400)
         pi.callback(gpio, pigpio.EITHER_EDGE, _recv_cbf)
-
-        while not done:
-            pass
+        e.wait()
+        e.clear()
+        #while not done:
+        #    sleep(0.1)  
+            #pass
 
         print('')
         #print('Message received @ ' + str(datetime.now()))
