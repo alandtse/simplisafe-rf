@@ -1786,6 +1786,7 @@ class PanicButtonMessage(SensorMessage):
     origin_type = Message.OriginType.PANIC_BUTTON
     
     class EventType(SensorMessage.EventType):
+        HEARTBEAT = 0x00
         BUTTON_PRESS = 0x01
         
     def __init__(self, sn: str, sequence: int, event_type: 'PanicButtonMessage.EventType'):
