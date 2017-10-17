@@ -2,9 +2,9 @@ import pigpio
 import SimpliSafe
 from time import sleep
 import threading
-
+import re
+import datetime
 e = threading.Event()
-threads = []
 
 done = False
 skip = False
@@ -14,9 +14,14 @@ start_flag0 = False
 start_flag1 = False
 sync_buffer = ''
 pi = None
+recv_start = 0
+recv_end = 0
+recv_cb_start = 0
+recv_cb_end = 0
 
 def _recv_cbf(gpio, level, tick):
-    global pi, done, skip, encoded, t, sync_buffer, start_flag0, start_flag1
+
+    global pi, done, skip, encoded, t, sync_buffer, start_flag0, start_flag1, recv_cb_start
     if t is None:
         t = tick
         return
@@ -37,7 +42,8 @@ def _recv_cbf(gpio, level, tick):
             pi.stop()
             e.set()
             done = True # End of transmission
-            #print("End of transmission")
+            recv_cb_end = datetime.datetime.now()
+            print(str(recv_cb_end) + ': ' + str(len(encoded)) + ' bits received after ' + str((recv_cb_end - recv_cb_start).total_seconds()) + " seconds.")
         else:
             t = tick
             start_flag0 = False
@@ -52,7 +58,8 @@ def _recv_cbf(gpio, level, tick):
             elif start_flag0:
                 start_flag1 = True
                 encoded = ''
-            #print("Start sequence detected")
+                recv_cb_start = datetime.datetime.now()
+                print(str(recv_cb_start)+ ': Start sequence detected')
         else:
             start_flag0 = False
         return 
@@ -72,36 +79,46 @@ def _recv_cbf(gpio, level, tick):
         encoded = ''
 
 def recv(gpio: int):
-    global pi, done, skip, encoded, t, start_flag0, start_flag1, sync_buffer
+    global pi, done, skip, encoded, t, start_flag0, start_flag1, sync_buffer, pulseerror
     while True:
         done = False
         skip = False
+        pulseerror = False
         encoded = ''
         t = None
         start_flag0 = False
         start_flag1 = False
         sync_buffer = ''
-
         pi = pigpio.pi()
         pi.set_mode(gpio, pigpio.INPUT)
         pi.set_glitch_filter(gpio, 50)
         #pi.set_noise_filter(gpio, 400, 400)
         pi.callback(gpio, pigpio.EITHER_EDGE, _recv_cbf)
+
+        recv_start = datetime.datetime.now()
+        print(str(recv_start)+': Waiting for message')
         e.wait()
         e.clear()
         #while not done:
         #    sleep(0.1)  
             #pass
-
+        recv_end = datetime.datetime.now()
+        print(str(recv_end)+': Message received after ' + str((recv_end - recv_start).total_seconds()) + " seconds.")
         print('')
-        #print('Message received @ ' + str(datetime.now()))
         #print('Message received: ' + encoded)
         if len(encoded) <= 4:
             print('Message ignored (not enough bytes)')
             continue
         if (encoded.find('X') != -1) or (encoded.find('x') != -1):
-            print('Message ignored (bad pulse width):'+ encoded)
-            continue
+            print('Message ignored (bad pulse width):\n'+ encoded)
+            pulseerror = True
+            bigx = encoded.count('X')
+            smallx = encoded.count('x')
+            encoded = re.sub('X','1',encoded)
+            encoded = re.sub('x','0',encoded)
+            print(encoded)
+            print("Added " + str(bigx) +" 1s and " + str(smallx)+ " 0s ")  
+            #continue
 
         decoded = ''
         for i in range(0, len(encoded), 4):
@@ -127,7 +144,11 @@ def recv(gpio: int):
         for i in range(0, len(swapped)):
             s += "{:02X}".format(swapped[i])
         print("Swapped: " + s)
-        return SimpliSafe.Message.factory(swapped)
+        if not pulseerror:
+            return SimpliSafe.Message.factory(swapped)
+        else:
+            print(str(SimpliSafe.Message.factory(swapped)))
+            continue
 
 def send(gpio: int, msg: SimpliSafe.Message, mode='script'):
     if isinstance(msg, SimpliSafe.SensorMessage):
