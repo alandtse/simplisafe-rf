@@ -43,7 +43,7 @@ def _recv_cbf(gpio, level, tick):
             e.set()
             done = True # End of transmission
             recv_cb_end = datetime.datetime.now()
-            print(str(recv_cb_end) + ': ' + str(len(encoded)) + ' bits received after ' + str((recv_cb_end - recv_cb_start).total_seconds()) + " seconds.")
+            print("%s: %s bits received after %s seconds." % (recv_cb_end, len(encoded), (recv_cb_end - recv_cb_start).total_seconds()))
         else:
             t = tick
             start_flag0 = False
@@ -59,7 +59,7 @@ def _recv_cbf(gpio, level, tick):
                 start_flag1 = True
                 encoded = ''
                 recv_cb_start = datetime.datetime.now()
-                print(str(recv_cb_start)+ ': Start sequence detected')
+                print("%s: Start sequence detected" % (recv_cb_start))
         else:
             start_flag0 = False
         return 
@@ -96,14 +96,14 @@ def recv(gpio: int):
         pi.callback(gpio, pigpio.EITHER_EDGE, _recv_cbf)
 
         recv_start = datetime.datetime.now()
-        print(str(recv_start)+': Waiting for message')
+        print("%s: Waiting for message" % (recv_start))
         e.wait()
         e.clear()
         #while not done:
         #    sleep(0.1)  
             #pass
         recv_end = datetime.datetime.now()
-        print(str(recv_end)+': Message received after ' + str((recv_end - recv_start).total_seconds()) + " seconds.")
+        print("%s: Message received after %s seconds." % (recv_end, ((recv_end - recv_start).total_seconds())))
         print('')
         #print('Message received: ' + encoded)
         if len(encoded) <= 4:
@@ -117,7 +117,7 @@ def recv(gpio: int):
             encoded = re.sub('X','1',encoded)
             encoded = re.sub('x','0',encoded)
             print(encoded)
-            print("Added " + str(bigx) +" 1s and " + str(smallx)+ " 0s ")  
+            print("Replacing %s/%s bits (%.2f%%) with %s 0s and %s 1s. \nHypothetical decode:" % (bigx + smallx, len(encoded), bigx + smallx / len(encoded) * 100, smallx, bigx))
             #continue
 
         decoded = ''
