@@ -1849,6 +1849,7 @@ class GlassbreakSensorMessage(SensorMessage):
         HEARTBEAT = 0x00
         GLASSBREAK = 0x01
         GLASSBREAK_TEST = 0x03
+        BATTERY_LOW = 0x80
         
     def __init__(self, sn: str, sequence: int, event_type: 'GlassbreakSensorMessage.EventType'):
         self.event_type = GlassbreakSensorMessage.EventType(event_type)
