@@ -1,0 +1,14 @@
+{
+  "receive_GPIO":22,
+  "host":"192.168.1.108",
+  "port":1883,
+  "auth":{
+    "username":"user",
+    "password":"password"
+  },
+  "offdelay":{
+    "MOTION":15,
+    "SMOKE":15,
+    "GLASSBREAK": 15
+  }
+}

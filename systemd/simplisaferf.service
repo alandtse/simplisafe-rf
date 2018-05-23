@@ -1,0 +1,14 @@
+[Unit]
+Description=Simplisafe RF Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/bin/python3 -u /home/pi/simplisafe-rf/listen-mqtt.py 
+Restart=always
+RuntimeMaxSec=86400
+WorkingDirectory=/home/pi/simplisafe-rf
+
+[Install]
+WantedBy=multi-user.target
