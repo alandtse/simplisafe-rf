@@ -79,6 +79,7 @@ if __name__ == "__main__":
     while True:
         try:
             client.loop()
+            time.sleep(1)
         except Exception as error:
             print("Exception " + str(error))
         except KeyboardInterrupt:
