@@ -12,3 +12,8 @@ WorkingDirectory=/home/pi/simplisafe-rf
 
 [Install]
 WantedBy=multi-user.target
+
+[Unit]
+Requires=pigpiod.service
+After=pigpiod.service
+PartOf=pigpiod.service
