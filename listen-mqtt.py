@@ -27,6 +27,9 @@ def on_message(client, userdata, message):
     if (message.topic == "simplisafe/command/stop"):
        print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Received stop command; exiting") 
        sys.exit()
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+       print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Unexpected disconnect; retrying") 
 
 # Monitor function
 def monitorSimplisafe():
@@ -34,6 +37,7 @@ def monitorSimplisafe():
     while True:
         try:
             msg = RFUtils.recv(RX_433MHZ_GPIO) # Returns when a valid message is received and parsed
+            time.sleep(1)
             count += 1 
             print(str(count) + "\t" + datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+"\n"+str(msg))
             origin_type = msg.origin_type.__class__.key(msg.origin_type)
@@ -73,12 +77,13 @@ if __name__ == "__main__":
     client = mqtt.Client()
     client.on_message = on_message  
     client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
     client.username_pw_set(auth["username"], auth["password"])
     client.connect(host, port)
     client.subscribe("simplisafe/#", 0)
     while True:
         try:
-            client.loop()
+            client.loop_forever(retry_first_connection=True)
             time.sleep(1)
         except Exception as error:
             print("Exception " + str(error))
