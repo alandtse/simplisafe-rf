@@ -26,7 +26,7 @@ def on_message(client, userdata, message):
     # skip any messages published by this node
     if ("reporting_node" in payload and payload["reporting_node"] == computername):
       return
-    print("message from: ", )#payload['reporting_node']);
+    print("message from: ", payload['reporting_node']);
     print("message received " ,str(payload))
     print("message topic=",message.topic)
     print("message qos=",message.qos)
