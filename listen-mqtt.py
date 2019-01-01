@@ -15,12 +15,19 @@ import json
 import threading
 from threading import Thread
 import sys
+import socket
 
 #MQTT callbacks
 def on_connect(client, userdata, flags, rc):
     print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Connected to " + auth["username"]+ "@"+ host+":"+ str(port)+ " with result code "+str(rc))
+
 def on_message(client, userdata, message):
-    print("message received " ,str(message.payload.decode("utf-8")))
+    payload = json.loads(message.payload.decode("utf-8"));
+    # skip any messages published by this node
+    if ("reporting_node" in payload and payload["reporting_node"] == computername):
+      return
+    print("message from: ", )#payload['reporting_node']);
+    print("message received " ,str(payload))
     print("message topic=",message.topic)
     print("message qos=",message.qos)
     print("message retain flag=",message.retain)
@@ -45,9 +52,9 @@ def monitorSimplisafe():
             event_type = msg.event_type.__class__.key(msg.event_type)
             seq = msg.sequence
             topic = "simplisafe/" + origin_type + "/" + sn
-            publish.single(topic, payload=json.dumps({'origin_type':origin_type, 'event':event_type, 'seq':seq}), client_id="simplisafe", auth=auth, port=port, hostname=host)
+            publish.single(topic, payload=json.dumps({'origin_type':origin_type, 'event':event_type, 'seq':seq, 'reporting_node':computername}), client_id=computername, auth=auth, port=port, hostname=host)
             if event_type in offdelay:
-                t1 = threading.Timer(offdelay[event_type], publish.single, [topic], {'payload':json.dumps({'origin_type':origin_type, 'event':'OFF', 'seq':seq}), 'client_id':"simplisafe", 'auth':auth, 'port':port, 'hostname':host}) 
+                t1 = threading.Timer(offdelay[event_type], publish.single, [topic], {'payload':json.dumps({'origin_type':origin_type, 'event':'OFF', 'seq':seq, 'reporting_node':computername}), 'client_id':computername, 'auth':auth, 'port':port, 'hostname':host})
                 t1.start() 
         except Exception as error: 
             print("Exception " + str(error))
@@ -70,6 +77,7 @@ if __name__ == "__main__":
         print("Value missing from config.json:" + str(e))
         sys.exit(1)
 #Start monitoring
+    computername = socket.gethostname()
     simplisafeThread = Thread(target = monitorSimplisafe)
     simplisafeThread.setDaemon(True)
     simplisafeThread.start()
