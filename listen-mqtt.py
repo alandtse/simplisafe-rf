@@ -19,24 +19,35 @@ import socket
 
 #MQTT callbacks
 def on_connect(client, userdata, flags, rc):
-    print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Connected to " + auth["username"]+ "@"+ host+":"+ str(port)+ " with result code "+str(rc))
+    if rc==0:
+        client.connected_flag=True #set flag
+        client.bad_connection_flag=False
+        print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Connected to " + auth["username"]+ "@"+ host+":"+ str(port)+ " with result code "+str(rc))
+        client.subscribe("simplisafe/#", 0)
+    else:
+        print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Unable to connect to " + auth["username"]+ "@"+ host+":"+ str(port)+ " with result code "+str(rc))
+        client.bad_connection_flag=True
 
 def on_message(client, userdata, message):
     payload = json.loads(message.payload.decode("utf-8"));
     # skip any messages published by this node
     if ("reporting_node" in payload and payload["reporting_node"] == computername):
-      return
+        return
     print("message from: ", payload['reporting_node']);
     print("message received " ,str(payload))
     print("message topic=",message.topic)
     print("message qos=",message.qos)
     print("message retain flag=",message.retain)
     if (message.topic == "simplisafe/command/stop"):
-       print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Received stop command; exiting") 
-       sys.exit()
+        print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Received stop command; exiting")
+        exit_flag=True
+
 def on_disconnect(client, userdata, rc):
     if rc != 0:
-       print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Unexpected disconnect; retrying") 
+        print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+" Unexpected disconnect; retrying")
+    else:
+        client.connected_flag=False
+        client.disconnect_flag=True
 
 # Monitor function
 def monitorSimplisafe():
@@ -77,24 +88,32 @@ if __name__ == "__main__":
         print("Value missing from config.json:" + str(e))
         sys.exit(1)
 #Start monitoring
+    exit_flag = False
     computername = socket.gethostname()
     simplisafeThread = Thread(target = monitorSimplisafe)
     simplisafeThread.setDaemon(True)
     simplisafeThread.start()
 #Connect to MQTT
+    mqtt.Client.connected_flag=False
+    mqtt.Client.bad_connection_flag=False #
     client = mqtt.Client()
     client.on_message = on_message  
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.username_pw_set(auth["username"], auth["password"])
-    client.connect(host, port)
-    client.subscribe("simplisafe/#", 0)
-    while True:
+    try:
+        client.connect(host, port)
+    except:
+        print("Connection failed")
+    client.loop_start()
+    while not exit_flag: #wait in loop
         try:
-            client.loop_forever(retry_first_connection=True)
             time.sleep(1)
         except Exception as error:
             print("Exception " + str(error))
         except KeyboardInterrupt:
-            break
             print ("Exiting")
+            break
+    client.loop_stop()
+    client.disconnect()
+    sys.exit()
