@@ -63,9 +63,9 @@ def monitorSimplisafe():
             event_type = msg.event_type.__class__.key(msg.event_type)
             seq = msg.sequence
             topic = "simplisafe/" + origin_type + "/" + sn
-            publish.single(topic, payload=json.dumps({'origin_type':origin_type, 'event':event_type, 'seq':seq, 'reporting_node':computername}), client_id=computername, auth=auth, port=port, hostname=host)
+            publish.single(topic, payload=json.dumps({'origin_type':origin_type, 'event':event_type, 'seq':seq, 'reporting_node':computername}), client_id=computername, auth=auth, port=port, hostname=host, retain=True)
             if event_type in offdelay:
-                t1 = threading.Timer(offdelay[event_type], publish.single, [topic], {'payload':json.dumps({'origin_type':origin_type, 'event':'OFF', 'seq':seq, 'reporting_node':computername}), 'client_id':computername, 'auth':auth, 'port':port, 'hostname':host})
+                t1 = threading.Timer(offdelay[event_type], publish.single, [topic], {'payload':json.dumps({'origin_type':origin_type, 'event':'OFF', 'seq':seq, 'reporting_node':computername}), 'client_id':computername, 'auth':auth, 'port':port, 'hostname':host, 'retain':True})
                 t1.start() 
         except Exception as error: 
             print("Exception " + str(error))
