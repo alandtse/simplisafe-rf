@@ -1,5 +1,9 @@
 {
   "receive_GPIO":22,
+  "transmit_GPIO": 27,
+  "keypad_SN": "",
+  "disarm_pin": "",
+  "autodiscovery_topic": "homeassistant",
   "host":"192.168.1.108",
   "port":1883,
   "auth":{
@@ -10,5 +14,9 @@
     "MOTION":15,
     "SMOKE":15,
     "GLASSBREAK": 15
-  }
+  },
+  "discover_serials": false,
+  "known_serials": [
+    "1ksxv"
+  ]
 }
