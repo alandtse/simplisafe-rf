@@ -200,8 +200,11 @@ def disarm(retry=3, delay=0.1):
     if not sn:
         print("Serialnumber is empty; disarm ignored")
         return
-    msg = SimpliSafe.KeypadDisarmPinRequest(sn, sequence, pin)
-    send(msg, retry, delay)
+    try:
+        msg = SimpliSafe.KeypadDisarmPinRequest(sn, sequence, pin)
+        send(msg, retry, delay)
+    except Exception as error:
+        print("Exception " + str(error))
 
 def tprint(msg):
     print(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+ ": " + msg)
