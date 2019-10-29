@@ -125,7 +125,7 @@ class Transceiver(AbstractTransceiver):
     def decode(bits: str) -> bytes:
         if bits.count('X') != 0:
             raise DecodeError('Message ignored (bad pulse width in {:d} bits): '.format(bits.count('X')) + bits)
-                
+
         raw_hex = ''
         for i in range(0, len(bits), 4):
             nibble = "{:X}".format(int(bits[i:i+4][::-1], 2)) # Zero-fill of partial nibbles
@@ -204,7 +204,7 @@ class Transceiver(AbstractTransceiver):
                     wd.append(pigpio.pulse(self.tx, 0, d))
                 else:
                     wd.append(pigpio.pulse(0, self.tx, d))
-                next_bit ^= 1    
+                next_bit ^= 1
         if isinstance(msg, BaseStationKeypadMessage):
             ds = [1000, 1000, 500, 500]
             for d in ds:
@@ -218,7 +218,7 @@ class Transceiver(AbstractTransceiver):
                 wd.append(pigpio.pulse(self.tx, 0, 1000))
             else:
                 wd.append(pigpio.pulse(0, self.tx, 1000))
-            next_bit ^= next_bit
+            next_bit ^= 1
         if isinstance(msg, BaseStationKeypadMessage):
             ws = []
             for i in range(18):
