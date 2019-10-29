@@ -173,15 +173,18 @@ def arm(away=False, retry=3):
     if not sn:
         print("Serialnumber is empty; arm ignored")
         return
-    msg = (SimpliSafe.KeypadHomeRequest(sn, sequence) if not away else
-        SimpliSafe.KeypadAwayRequest(sn, sequence))
-    send(msg, retry)
+    try:
+        msg = (SimpliSafe.KeypadHomeRequest(sn, sequence) if not away else
+            SimpliSafe.KeypadAwayRequest(sn, sequence))
+        send(msg, retry)
+    except Exception as error:
+        print("Exception " + str(error))
 
 def send(msg, retry=3, delay=3):
     global sequence
     try:
         for x in range(0, retry):
-            sequence += 1
+            sequence = (sequence + 1 % 16)
             RFUtils.send(TX_433MHZ_GPIO, msg) # Base station will respond on 315MHz with "VALID" or "INVALID"
             time.sleep(delay)
     except Exception as error:
