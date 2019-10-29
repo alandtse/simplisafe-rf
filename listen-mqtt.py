@@ -5,8 +5,9 @@ listen-mqtt - Simple simplisafe-rf to MQTT bridge. Requires config.json based of
 """
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-import RFUtils
-import SimpliSafe
+from simplisafe.pigpio import Transceiver
+from simplisafe.messages import KeypadHomeRequest, KeypadAwayRequest, KeypadAlarmPinRequest
+
 import time
 import datetime
 import paho.mqtt.client as mqtt
@@ -76,9 +77,10 @@ def on_disconnect(client, userdata, rc):
 def monitorSimplisafe():
     count = 0
     global published_serials
+    global txr433
     while True:
         try:
-            msg = RFUtils.recv(RX_433MHZ_GPIO) # Returns when a valid message is received and parsed
+            msg = txr433.recv() # Returns when a valid message is received and parsed
             time.sleep(1)
             count += 1
             print(str(count) + "\t" + datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+"\n"+str(msg))
@@ -174,18 +176,19 @@ def arm(away=False, retry=3):
         print("Serialnumber is empty; arm ignored")
         return
     try:
-        msg = (SimpliSafe.KeypadHomeRequest(sn, sequence) if not away else
-            SimpliSafe.KeypadAwayRequest(sn, sequence))
+        msg = (KeypadHomeRequest(sn, sequence) if not away else
+            KeypadAwayRequest(sn, sequence))
         send(msg, retry)
     except Exception as error:
         print("Exception " + str(error))
 
 def send(msg, retry=3, delay=3):
     global sequence
+    global txr433
     try:
         for x in range(0, retry):
             sequence = (sequence + 1 % 16)
-            RFUtils.send(TX_433MHZ_GPIO, msg) # Base station will respond on 315MHz with "VALID" or "INVALID"
+            txr433.send(msg)
             time.sleep(delay)
     except Exception as error:
             print("Exception " + str(error))
@@ -201,7 +204,7 @@ def disarm(retry=3, delay=0.1):
         print("Serialnumber is empty; disarm ignored")
         return
     try:
-        msg = SimpliSafe.KeypadDisarmPinRequest(sn, sequence, pin)
+        msg = KeypadAlarmPinRequest(sn, sequence, pin=pin)
         send(msg, retry, delay)
     except Exception as error:
         print("Exception " + str(error))
@@ -235,6 +238,8 @@ if __name__ == "__main__":
 #Start monitoring
     exit_flag = False
     computername = socket.gethostname()
+    global txr433
+    txr433 = Transceiver(rx=RX_433MHZ_GPIO, tx=TX_433MHZ_GPIO)
     simplisafeThread = Thread(target = monitorSimplisafe)
     simplisafeThread.setDaemon(True)
     simplisafeThread.start()
