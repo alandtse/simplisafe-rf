@@ -77,27 +77,27 @@ def on_disconnect(client, userdata, rc):
 def monitorSimplisafe():
     count = 0
     global published_serials
-    global txr433
-    while True:
-        try:
-            msg = txr433.recv() # Returns when a valid message is received and parsed
-            time.sleep(1)
-            count += 1
-            print(str(count) + "\t" + datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+"\n"+str(msg))
-            origin_type = msg.origin_type.__class__.key(msg.origin_type)
-            sn = msg.sn
-            event_type = msg.event_type.__class__.key(msg.event_type)
-            seq = msg.sequence
-            topic = "simplisafe/" + origin_type + "/" + sn
-            payload = {'origin_type':origin_type, 'event':event_type, 'seq':seq, 'reporting_node':computername}
-            if sn.lower() not in published_serials:
-                publish_discovery(origin_type, sn, payload, topic)
-            publish.single(topic, payload=json.dumps(payload), client_id=computername, auth=auth, port=port, hostname=host, retain=True)
-            if event_type in offdelay:
-                t1 = threading.Timer(offdelay[event_type], publish.single, [topic], {'payload':json.dumps({'origin_type':origin_type, 'event':'OFF', 'seq':seq, 'reporting_node':computername}), 'client_id':computername, 'auth':auth, 'port':port, 'hostname':host, 'retain':True})
-                t1.start()
-        except Exception as error:
-            print("Exception " + str(error))
+    with Transceiver(rx=RX_433MHZ_GPIO) as txr433:
+        while True:
+            try:
+                msg = txr433.recv() # Returns when a valid message is received and parsed
+                count += 1
+                print(str(count) + "\t" + datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')+"\n"+str(msg))
+                origin_type = msg.origin_type.__class__.key(msg.origin_type)
+                sn = msg.sn
+                event_type = msg.event_type.__class__.key(msg.event_type)
+                seq = msg.sequence
+                topic = "simplisafe/" + origin_type + "/" + sn
+                payload = {'origin_type':origin_type, 'event':event_type, 'seq':seq, 'reporting_node':computername}
+                if sn.lower() not in published_serials:
+                    publish_discovery(origin_type, sn, payload, topic)
+                publish.single(topic, payload=json.dumps(payload), client_id=computername, auth=auth, port=port, hostname=host, retain=True)
+                if event_type in offdelay:
+                    t1 = threading.Timer(offdelay[event_type], publish.single, [topic], {'payload':json.dumps({'origin_type':origin_type, 'event':'OFF', 'seq':seq, 'reporting_node':computername}), 'client_id':computername, 'auth':auth, 'port':port, 'hostname':host, 'retain':True})
+                    t1.start()
+                time.sleep(1)
+            except Exception as error:
+                print("Exception " + str(error))
 
 def publish_discovery(origin_type, sn, payload, topic):
     global published_serials
@@ -184,17 +184,17 @@ def arm(away=False, retry=3):
 
 def send(msg, retry=3, delay=3):
     global sequence
-    global txr433
-    try:
-        for x in range(0, retry):
-            sequence = (sequence + 1 % 16)
-            txr433.send(msg)
-            time.sleep(delay)
-    except Exception as error:
-            print("Exception " + str(error))
-    except pigpio.error as error:
-            print("Retrying due to pigpio error " + str(error))
-            send(msg, retry, delay)
+    with Transceiver(tx=TX_433MHZ_GPIO) as txr433:
+        try:
+            # sequence = (sequence + 1 % 16)
+            for x in range(0, retry):
+                txr433.send(msg)
+                time.sleep(delay)
+        except Exception as error:
+                print("Exception " + str(error))
+        except pigpio.error as error:
+                print("Retrying due to pigpio error " + str(error))
+                send(msg, retry, delay)
 
 def disarm(retry=3, delay=0.1):
     if not pin:
@@ -238,8 +238,6 @@ if __name__ == "__main__":
 #Start monitoring
     exit_flag = False
     computername = socket.gethostname()
-    global txr433
-    txr433 = Transceiver(rx=RX_433MHZ_GPIO, tx=TX_433MHZ_GPIO)
     simplisafeThread = Thread(target = monitorSimplisafe)
     simplisafeThread.setDaemon(True)
     simplisafeThread.start()
