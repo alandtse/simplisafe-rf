@@ -41,17 +41,19 @@ class Transceiver(AbstractTransceiver):
             self._pi.set_mode(self.rx, pigpio.INPUT)
             self._pi.set_glitch_filter(self.rx, 400)
             #self._pi.set_noise_filter(self.rx, 400, 400)
+            self._listener = Thread(target=self._listen)
+            self._listener.start()
         if self.is_transmitter:
             self._pi.set_mode(self.tx, pigpio.OUTPUT)
 
-        self._listener = Thread(target=self._listen)
-        self._listener.start()
+
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._listener.join(0)
+        if self.is_receiver:
+            self._listener.join(0)
         self._pi.stop() # Disconnect from pigpiod
         os.close(self._read_fd)
         os.close(self._write_fd)
@@ -111,6 +113,7 @@ class Transceiver(AbstractTransceiver):
             self._rx_sync_buffer = ''
             cb = self._pi.callback(self.rx, pigpio.EITHER_EDGE, self._listen_cbf)
             while not self._rx_done:
+                sleep(0.1)
                 pass
             cb.cancel()
             try:
@@ -120,6 +123,7 @@ class Transceiver(AbstractTransceiver):
                 print(str(e), file=stderr)
                 continue
             os.write(self._write_fd, decoded)
+            sleep(1)
 
     @staticmethod
     def decode(bits: str) -> bytes:
@@ -295,3 +299,4 @@ class Transceiver(AbstractTransceiver):
             elif s == pigpio.PI_SCRIPT_HALTED:
                 self._pi.delete_script(sid)
                 break
+            sleep(0.1)

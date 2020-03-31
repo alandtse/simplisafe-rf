@@ -32,6 +32,7 @@ class AbstractDevice:
 
     def _recv(self):
         while True:
+            time.sleep(0.1)
             self._process_msg(self.txr.recv())
 
     def _process_msg(self, msg: Message):
@@ -385,7 +386,7 @@ class BaseStation(AbstractDevice):
                     self._trip(self._alarm, c.get('instant_trip'))
         else:
             raise NotImplementedError
-    
+
     def _trip(self, trip_function, instant_trip=False):
         if instant_trip:
             trip_function()
